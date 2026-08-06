@@ -66,6 +66,8 @@ De grootste resterende gaten met de specs:
 **Scope**
 - Voeg `@Roles(...)` decorator toe.
 - Voeg `RolesGuard` toe naast de bestaande `AuthGuard`.
+- Valideer `Authorization: Bearer` JWT's tegen Keycloak issuer/JWKS.
+- Houd header-auth alleen beschikbaar als expliciete dev fallback.
 - Bescherm accorderingsendpoints:
   - `proceseigenaar` vereist rol `proceseigenaar`;
   - `archivaris` vereist rol `archivaris`.
@@ -76,6 +78,8 @@ De grootste resterende gaten met de specs:
 
 **Acceptatiecriteria**
 - Request zonder juiste rol krijgt `403`.
+- Request zonder bearer token krijgt `401` wanneer `AUTH_DEV_HEADER_FALLBACK=false`.
+- Keycloak JWT-claims worden gemapt naar `UserContext`.
 - Proceseigenaar kan alleen PO-accordering vastleggen.
 - Archivaris kan alleen finale accordering vastleggen.
 - Dezelfde actor kan, als functiescheiding aanstaat, geen tweede rol uitvoeren.
@@ -84,8 +88,9 @@ De grootste resterende gaten met de specs:
 **Codex prompt**
 ```text
 Implementeer VC-003: voeg Roles decorator en RolesGuard toe, bescherm de
-besluitvormingsendpoints, voeg functiescheidingscontrole toe op basis van
-audit_events, en test 200/403-paden.
+besluitvormingsendpoints, valideer Keycloak JWT's via issuer/JWKS, voeg
+functiescheidingscontrole toe op basis van audit_events, en test
+200/401/403-paden.
 ```
 
 **Demo**
@@ -282,10 +287,11 @@ De sprint wordt uitgevoerd als korte, stapelbare slices in plaats van als
 dagplanning:
 
 1. Rolzuiverheid voor normatieve endpoints.
-2. Audit op reviewmutaties en bulkacties.
-3. Stekkercontract en selectiecontext.
-4. Queue/configuratie hardening zodra de contractgrens staat.
-5. Verklaring/export wanneer besluitvorming en dossier compleet genoeg zijn.
+2. Keycloak JWT-validatie in de API.
+3. Audit op reviewmutaties en bulkacties.
+4. Stekkercontract en selectiecontext.
+5. Queue/configuratie hardening zodra de contractgrens staat.
+6. Verklaring/export wanneer besluitvorming en dossier compleet genoeg zijn.
 
 ## PR-slices
 
@@ -295,6 +301,7 @@ dagplanning:
 
 **Bevat**
 - `@Roles`, `RolesGuard`.
+- Keycloak JWT-validatie via issuer/JWKS.
 - Beschermde accorderingsendpoints.
 - Functiescheidingscontrole.
 - Tests.
