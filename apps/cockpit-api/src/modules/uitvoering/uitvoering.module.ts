@@ -7,12 +7,13 @@ import { StartVernietigingProcessor } from '../../../queue/processors/start-vern
 import { ArchiveringWorker } from '../../../workers/archivering.worker';
 import { PollingWorker } from '../../../workers/polling.worker';
 import { UitvoeringWorker } from '../../../workers/uitvoering.worker';
+import { StekkerModule } from '../stekker/stekker.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { UitvoeringController } from './uitvoering.controller';
 import { UitvoeringService } from './uitvoering.service';
 
 @Module({
-  imports: [WorkflowModule],
+  imports: [StekkerModule, WorkflowModule],
   controllers: [UitvoeringController],
   providers: [
     UitvoeringService,

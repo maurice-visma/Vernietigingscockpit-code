@@ -276,42 +276,16 @@ dossiercompleetheid, en vervang de stub in GET /verklaring.
 - Vraag verklaring op voor een taak zonder finale accordering en toon blokkade.
 - Rond accordering af en toon de gegenereerde JSON-verklaring.
 
-## Sprintplanning
+## Uitvoeringsvolgorde
 
-### Dag 1 - Analyse en snijplan
+De sprint wordt uitgevoerd als korte, stapelbare slices in plaats van als
+dagplanning:
 
-- Check open PR-stack en mergevolgorde.
-- Maak branch `codex-role-audit-stekker-sprint`.
-- Werk migratie-impact uit voor audit, rollen en stekkerconfiguratie.
-
-### Dag 2-3 - Rolzuiverheid
-
-- VC-003 implementeren.
-- Unit tests voor rollen en functiescheiding.
-- Demo-curl scripts toevoegen.
-
-### Dag 4-5 - Reviewaudit
-
-- VC-002b implementeren.
-- Auditpayloads met oude/nieuwe waarden.
-- Controller aanpassen naar `CurrentUser`.
-
-### Dag 6-8 - Stekkercontract
-
-- VC-004a implementeren.
-- MockStekkerClient en selectiecontext.
-- Contracttests en service-tests.
-
-### Dag 9 - Queue-basis of configuratieversie
-
-- Als VC-004a stabiel is: VC-005a queue-adapter starten.
-- Als Redis/BullMQ te groot wordt: VC-007 configuratieversie eerst afronden.
-
-### Dag 10 - Hardening en sprintreview
-
-- API tests, UI build, demo-script.
-- PR-beschrijvingen met architectuurimpact.
-- Sprintreview bijwerken met gesloten gaten en resterende risico's.
+1. Rolzuiverheid voor normatieve endpoints.
+2. Audit op reviewmutaties en bulkacties.
+3. Stekkercontract en selectiecontext.
+4. Queue/configuratie hardening zodra de contractgrens staat.
+5. Verklaring/export wanneer besluitvorming en dossier compleet genoeg zijn.
 
 ## PR-slices
 
