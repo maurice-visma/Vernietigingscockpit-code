@@ -35,8 +35,8 @@ type TaskExecutionRow = {
 const mockRows: TaskExecutionRow[] = [
   {
     id: "TI-102",
-    taskId: "1",
-    taakuitvoeringId: "TI-102",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "HR dossiers kwartaal",
     subtitle: "Gestart 4 mei 2026",
     taskLabel: "Taak: Personeelsvernietiging",
@@ -65,8 +65,8 @@ const mockRows: TaskExecutionRow[] = [
   },
   {
     id: "TI-103",
-    taskId: "3",
-    taakuitvoeringId: "TI-103",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "IT projecten 2021",
     subtitle: "Gestart 12 mei 2026",
     taskLabel: "Taak: Projectarchief",
@@ -80,7 +80,7 @@ const mockRows: TaskExecutionRow[] = [
   {
     id: "TI-104",
     taskId: "2",
-    taakuitvoeringId: "TI-104",
+    taakuitvoeringId: "2",
     naam: "Finance jaarrekening",
     subtitle: "Volgende instantie - 1 januari 2027",
     taskLabel: "Taak: Financiele administratie",
@@ -93,8 +93,8 @@ const mockRows: TaskExecutionRow[] = [
   },
   {
     id: "TI-105",
-    taskId: "4",
-    taakuitvoeringId: "TI-105",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "Marketing campagnes Q2",
     subtitle: "Volgende instantie - 1 augustus 2026",
     taskLabel: "Taak: Marketingvernietiging",
