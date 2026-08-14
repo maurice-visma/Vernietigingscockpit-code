@@ -49,3 +49,24 @@ Voor de lokale testomgeving kan een public client `vernietigingscockpit-ui` en
 testgebruiker `testgebruiker` met wachtwoord `Test123!` worden aangemaakt. Geef
 deze gebruiker de rollen `recordmanager`, `proceseigenaar`, `archivaris` en
 `beheerder` om de volledige workflow te testen.
+
+## Keycloak NL Design System theme
+
+De lokale Keycloak kan het NL Design System theme van
+[`MinBZK/keycloak-theme`](https://github.com/MinBZK/keycloak-theme) gebruiken.
+Het script downloadt de officiële release-jar, controleert de sha256, kopieert
+de jar naar `/opt/keycloak/providers/`, herstart Keycloak en zet de realms
+`master` en `vernietigingscockpit` op theme `nl-design-system`.
+
+```bash
+bash infrastructure/keycloak/install-nlds-theme.sh
+```
+
+Standaarden:
+
+- theme release: `v1.4.2`
+- jar: `keycloak-nl-design-system.jar`
+- Keycloak URL: `http://127.0.0.1:8180`
+
+Na installatie toont `http://127.0.0.1:5173/dashboard` bij inloggen de
+Keycloak-loginpagina in NL Design System-stijl.

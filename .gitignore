@@ -28,3 +28,4 @@ lerna-debug.log*
 .tmp
 .codex-pptx-work/
 *.inspect.ndjson
+infrastructure/keycloak/.cache/
