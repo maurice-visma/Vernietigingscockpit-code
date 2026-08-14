@@ -1,4 +1,6 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { UserContext } from '../auth/user-context';
 import { StartSelectieDto, StartVernietigingDto } from './uitvoering.dto';
 import { UitvoeringService } from './uitvoering.service';
 
@@ -11,8 +13,9 @@ export class UitvoeringController {
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
     @Body() dto: StartSelectieDto,
+    @CurrentUser() gebruiker: UserContext,
   ) {
-    return this.uitvoeringService.startSelectie({ taakId, taakuitvoeringId }, dto);
+    return this.uitvoeringService.startSelectie({ taakId, taakuitvoeringId }, dto, gebruiker);
   }
 
   @Post('vernietiging')

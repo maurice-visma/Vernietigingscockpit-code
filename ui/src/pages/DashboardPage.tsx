@@ -18,6 +18,7 @@ type TaskExecutionStatus =
 type TaskExecutionRow = {
   id: string;
   taskId: string;
+  taakuitvoeringId: string;
   naam: string;
   subtitle: string;
   taskLabel: string;
@@ -34,7 +35,8 @@ type TaskExecutionRow = {
 const mockRows: TaskExecutionRow[] = [
   {
     id: "TI-102",
-    taskId: "1",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "HR dossiers kwartaal",
     subtitle: "Gestart 4 mei 2026",
     taskLabel: "Taak: Personeelsvernietiging",
@@ -49,6 +51,7 @@ const mockRows: TaskExecutionRow[] = [
   {
     id: "TI-100",
     taskId: "2",
+    taakuitvoeringId: "2",
     naam: "Zorgdomein jaarlijks",
     subtitle: "Gestart 10 mei 2026",
     taskLabel: "Taak: Zorgdomein jaarlijks",
@@ -62,7 +65,8 @@ const mockRows: TaskExecutionRow[] = [
   },
   {
     id: "TI-103",
-    taskId: "3",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "IT projecten 2021",
     subtitle: "Gestart 12 mei 2026",
     taskLabel: "Taak: Projectarchief",
@@ -76,6 +80,7 @@ const mockRows: TaskExecutionRow[] = [
   {
     id: "TI-104",
     taskId: "2",
+    taakuitvoeringId: "2",
     naam: "Finance jaarrekening",
     subtitle: "Volgende instantie - 1 januari 2027",
     taskLabel: "Taak: Financiele administratie",
@@ -88,7 +93,8 @@ const mockRows: TaskExecutionRow[] = [
   },
   {
     id: "TI-105",
-    taskId: "4",
+    taskId: "2",
+    taakuitvoeringId: "2",
     naam: "Marketing campagnes Q2",
     subtitle: "Volgende instantie - 1 augustus 2026",
     taskLabel: "Taak: Marketingvernietiging",
@@ -349,7 +355,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() =>
                         navigate(
-                          `/taak/${row.taskId}/taakuitvoering/2/selectie`
+                          `/taak/${row.taskId}/taakuitvoering/${row.taakuitvoeringId}/selectie`
                         )
                       }
                       className="inline-flex h-10 w-[170px] items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"

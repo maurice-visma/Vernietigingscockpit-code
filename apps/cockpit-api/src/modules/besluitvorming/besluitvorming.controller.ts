@@ -1,5 +1,6 @@
 import { Body, Controller, Param, Put } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { Roles } from '../auth/roles.decorator';
 import { UserContext } from '../auth/user-context';
 import { AccorderingDto } from './besluitvorming.dto';
 import { BesluitvormingService } from './besluitvorming.service';
@@ -9,6 +10,7 @@ export class BesluitvormingController {
   constructor(private readonly besluitvormingService: BesluitvormingService) {}
 
   @Put('proceseigenaar')
+  @Roles('proceseigenaar')
   legProceseigenaarAccorderingVast(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -23,6 +25,7 @@ export class BesluitvormingController {
   }
 
   @Put('archivaris')
+  @Roles('archivaris')
   legArchivarisAccorderingVast(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,

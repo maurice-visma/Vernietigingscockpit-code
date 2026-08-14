@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { UserContext } from '../auth/user-context';
 import { DossierService } from './dossier.service';
 import { MarkeerBeoordeeldDto, ReviewregelQueryDto, UpdateReviewregelDto } from './dossier.dto';
 
@@ -21,8 +23,9 @@ export class DossierController {
     @Param('taakuitvoeringId') taakuitvoeringId: string,
     @Param('reviewregelId') reviewregelId: string,
     @Body() dto: UpdateReviewregelDto,
+    @CurrentUser() gebruiker: UserContext,
   ) {
-    return this.dossierService.updateReviewregel({ taakId, taakuitvoeringId }, reviewregelId, dto);
+    return this.dossierService.updateReviewregel({ taakId, taakuitvoeringId }, reviewregelId, dto, gebruiker);
   }
 
   @Post('reviewregels/markeer-beoordeeld')
@@ -30,8 +33,9 @@ export class DossierController {
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
     @Body() dto: MarkeerBeoordeeldDto,
+    @CurrentUser() gebruiker: UserContext,
   ) {
-    return this.dossierService.markeerBeoordeeld({ taakId, taakuitvoeringId }, dto);
+    return this.dossierService.markeerBeoordeeld({ taakId, taakuitvoeringId }, dto, gebruiker);
   }
 
   @Get('resultaatregels')
