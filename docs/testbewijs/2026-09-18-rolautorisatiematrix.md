@@ -28,7 +28,8 @@ Het technische besluit en de volledige matrix staan in
 
 - API: 6 suites, 33 tests geslaagd.
 - Route-metadatatest dekt alle 13 niet-publieke controllerhandelingen.
-- Frontend: 7 tests geslaagd, inclusief sessievernieuwing en rolroutes.
+- Frontend: 8 tests geslaagd, inclusief claimcombinatie, sessievernieuwing en
+  rolroutes.
 - API- en UI-productiebuild geslaagd.
 - Gerichte ESLint-controle op alle gewijzigde UI-bestanden geslaagd.
 - `git diff --check` geslaagd.
