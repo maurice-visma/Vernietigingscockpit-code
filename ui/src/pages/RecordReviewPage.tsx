@@ -13,6 +13,7 @@ import ReviewTableFilters from "../features/task-execution/review/components/Rev
 import ReviewValidationBanner from "../features/task-execution/review/components/ReviewValidationBanner";
 
 import {
+  getTaskExecution,
   listReviewRows,
   markReviewRowsReviewed,
   submitReviewToProcessOwner,
@@ -151,6 +152,16 @@ export default function RecordReviewPage() {
       setConfirmOpen(false);
       navigate("/dashboard");
     } catch {
+      try {
+        const execution = await getTaskExecution(taakId, id);
+        if (execution.status === "wacht_op_proceseigenaar") {
+          setConfirmOpen(false);
+          navigate("/dashboard");
+          return;
+        }
+      } catch {
+        // Toon hieronder de oorspronkelijke actiemelding.
+      }
       setActionError("Doorzetten naar accordering kon niet worden vastgelegd.");
     } finally {
       setSubmitting(false);

@@ -88,6 +88,12 @@ export function listTaskExecutions() {
   return request<ListResponse<TaskExecutionSummary>>("/taken/taakuitvoeringen");
 }
 
+export function getTaskExecution(taakId: string, taakuitvoeringId: string) {
+  return request<TaskExecutionSummary>(
+    `/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}`,
+  );
+}
+
 export function listDestructionResults(taakId: string, taakuitvoeringId: string) {
   return request<ListResponse<DestructionResultRow>>(
     `/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}/resultaatregels`
