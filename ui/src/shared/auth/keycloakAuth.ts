@@ -1,3 +1,8 @@
+import {
+  accessTokenNeedsRefresh,
+  requestTokenRefresh,
+} from "./oidcSession";
+
 const AUTH_SESSION_KEY = "vernietigingscockpit.auth.session";
 const AUTH_FLOW_KEY = "vernietigingscockpit.auth.pkce";
 const AUTH_CALLBACK_KEY = "vernietigingscockpit.auth.callback";
@@ -25,6 +30,8 @@ type TokenResponse = {
   refresh_token?: string;
   expires_in?: number;
 };
+
+let sessionRefresh: Promise<AuthSession | null> | null = null;
 
 type StoredFlow = {
   state: string;
@@ -77,13 +84,8 @@ export function getAuthSession(): AuthSession | null {
     };
   }
 
-  const rawSession = window.sessionStorage.getItem(AUTH_SESSION_KEY);
-  if (!rawSession) {
-    return null;
-  }
-
-  const session = JSON.parse(rawSession) as AuthSession;
-  if (session.expiresAt <= Date.now() + 30_000) {
+  const session = storedAuthSession();
+  if (session && session.expiresAt <= Date.now() && !session.refreshToken) {
     clearAuthSession();
     return null;
   }
@@ -101,8 +103,13 @@ export async function authHeaders(): Promise<Record<string, string>> {
     };
   }
 
-  const session = getAuthSession();
-  return session ? { Authorization: `Bearer ${session.accessToken}` } : {};
+  const session = await getValidAuthSession();
+  if (session) {
+    return { Authorization: `Bearer ${session.accessToken}` };
+  }
+
+  await startLogin();
+  throw new Error("De Keycloak-sessie is verlopen; opnieuw aanmelden is gestart.");
 }
 
 export async function startLogin(returnTo = currentRelativeUrl()) {
@@ -212,6 +219,54 @@ export function clearAuthSession() {
   window.sessionStorage.removeItem(AUTH_CALLBACK_KEY);
 }
 
+async function getValidAuthSession(): Promise<AuthSession | null> {
+  const session = storedAuthSession();
+  if (!session) {
+    return null;
+  }
+
+  if (!accessTokenNeedsRefresh(session)) {
+    return session;
+  }
+
+  if (!session.refreshToken) {
+    clearAuthSession();
+    return null;
+  }
+
+  if (!sessionRefresh) {
+    sessionRefresh = refreshAuthSession(session).finally(() => {
+      sessionRefresh = null;
+    });
+  }
+
+  return sessionRefresh;
+}
+
+async function refreshAuthSession(session: AuthSession): Promise<AuthSession | null> {
+  try {
+    const tokens = await requestTokenRefresh(
+      `${normalizedIssuer()}/protocol/openid-connect/token`,
+      import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
+      session.refreshToken!,
+    );
+    const claims = decodeJwtClaims(tokens.id_token ?? tokens.access_token);
+    const refreshedSession: AuthSession = {
+      accessToken: tokens.access_token,
+      idToken: tokens.id_token ?? session.idToken,
+      refreshToken: tokens.refresh_token ?? session.refreshToken,
+      expiresAt: Date.now() + (tokens.expires_in ?? 300) * 1000,
+      user: userFromClaims(claims),
+    };
+
+    window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(refreshedSession));
+    return refreshedSession;
+  } catch {
+    clearAuthSession();
+    return null;
+  }
+}
+
 export function logout() {
   if (!isKeycloakAuthEnabled()) {
     return;
@@ -251,6 +306,20 @@ function redirectUriForCurrentOrigin() {
 function storedFlow() {
   const rawFlow = window.sessionStorage.getItem(AUTH_FLOW_KEY);
   return rawFlow ? (JSON.parse(rawFlow) as StoredFlow) : null;
+}
+
+function storedAuthSession(): AuthSession | null {
+  const rawSession = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawSession) as AuthSession;
+  } catch {
+    clearAuthSession();
+    return null;
+  }
 }
 
 async function waitForStoredSession() {

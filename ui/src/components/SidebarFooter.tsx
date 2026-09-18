@@ -6,6 +6,7 @@ import
     Settings 
 } from "lucide-react";
 import { useAuth } from "../shared/auth/authContext";
+import { COCKPIT_ROLES } from "../shared/auth/roleAccess";
 
 type Props = {
   expanded?: boolean;
@@ -54,11 +55,13 @@ export default function SidebarFooter({
       {/* MENU ITEMS */}
       <div className="flex flex-col gap-1">
 
-        <SidebarFooterItem
-          icon={<Settings className="w-5 h-5 text-slate-700" />}
-          label="Instellingen"
-          expanded={expanded}
-        />
+        {user?.roles.includes(COCKPIT_ROLES.beheerder) ? (
+          <SidebarFooterItem
+            icon={<Settings className="w-5 h-5 text-slate-700" />}
+            label="Instellingen"
+            expanded={expanded}
+          />
+        ) : null}
 
         <SidebarFooterItem
           icon={<CircleHelp className="w-5 h-5 text-slate-700" />}
