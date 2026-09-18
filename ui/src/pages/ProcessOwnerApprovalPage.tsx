@@ -7,7 +7,11 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import PageActionBar from "../components/PageActionBar";
 import WorkflowBar from "../features/task-execution/components/WorkflowBar";
-import { listReviewRows } from "../shared/api/cockpitApi";
+import {
+  getTaskExecution,
+  listReviewRows,
+  recordProcessOwnerApproval,
+} from "../shared/api/cockpitApi";
 import type { VernietigingsObject } from "../shared/types/destruction";
 
 type ExceptionDecision = "akkoord" | "aanpassen" | "terug";
@@ -35,6 +39,8 @@ export default function ProcessOwnerApprovalPage() {
   const [returnComment, setReturnComment] = useState("");
   const [commentSectionOpen, setCommentSectionOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!taakId || !id) {
@@ -93,7 +99,33 @@ export default function ProcessOwnerApprovalPage() {
   };
 
   const goToArchivistApproval = () => {
+    setActionError(null);
     setConfirmOpen(true);
+  };
+
+  const confirmArchivistApproval = async () => {
+    if (!taakId || !id || submitting) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      await recordProcessOwnerApproval(taakId, id, returnComment);
+      setConfirmOpen(false);
+      navigate("/dashboard");
+    } catch {
+      try {
+        const execution = await getTaskExecution(taakId, id);
+        if (execution.status === "wacht_op_archivaris") {
+          setConfirmOpen(false);
+          navigate("/dashboard");
+          return;
+        }
+      } catch {
+        // Toon hieronder de oorspronkelijke actiemelding.
+      }
+      setActionError("Doorzetten naar de archivaris kon niet worden vastgelegd.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,6 +157,12 @@ export default function ProcessOwnerApprovalPage() {
       />
 
       <WorkflowBar activeStep="ACCORDERING_PO" />
+
+      {actionError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
 
       {loading && (
         <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 text-sm text-gray-500">
@@ -359,12 +397,9 @@ export default function ProcessOwnerApprovalPage() {
         open={confirmOpen}
         title="Doorzetten naar archivaris?"
         description="Je staat op het punt deze accordering af te ronden en de lijst door te zetten naar de archivaris voor de volgende stap."
-        confirmLabel="Ja, doorzetten"
+        confirmLabel={submitting ? "Bezig..." : "Ja, doorzetten"}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          navigate(`/taak/${taakId}/taakuitvoering/${id}/accordering/archivaris`);
-        }}
+        onConfirm={confirmArchivistApproval}
       />
     </div>
   );

@@ -94,6 +94,20 @@ export function getTaskExecution(taakId: string, taakuitvoeringId: string) {
   );
 }
 
+export function recordProcessOwnerApproval(
+  taakId: string,
+  taakuitvoeringId: string,
+  toelichting?: string,
+) {
+  return request(
+    `/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}/accorderingen/proceseigenaar`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ akkoord: true, toelichting: toelichting || undefined }),
+    },
+  );
+}
+
 export function listDestructionResults(taakId: string, taakuitvoeringId: string) {
   return request<ListResponse<DestructionResultRow>>(
     `/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}/resultaatregels`
