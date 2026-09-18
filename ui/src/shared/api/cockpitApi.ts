@@ -16,6 +16,18 @@ type ActieStatus = {
   bericht: string;
 };
 
+export type TaskExecutionSummary = {
+  taakId: string;
+  taakuitvoeringId: string;
+  status: string;
+  huidigeStap: string;
+  bijgewerktOp: string;
+  naam: string;
+  frequentie: string;
+  recordmanager: string;
+  gestartOp?: string;
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const authenticationHeaders = await authHeaders();
 
@@ -62,14 +74,18 @@ export function markReviewRowsReviewed(
   return request(`/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}/reviewregels/markeer-beoordeeld`, {
     method: "POST",
     body: JSON.stringify({ reviewregelIds }),
-  }).catch(() => ({
-    taakId,
-    taakuitvoeringId,
-    items: reviewregelIds.map((reviewregelId) => ({
-      reviewregelId,
-      status: "beoordeeld",
-    })),
-  }));
+  });
+}
+
+export function submitReviewToProcessOwner(taakId: string, taakuitvoeringId: string) {
+  return request(`/taken/${taakId}/taakuitvoeringen/${taakuitvoeringId}/review/doorzetten`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function listTaskExecutions() {
+  return request<ListResponse<TaskExecutionSummary>>("/taken/taakuitvoeringen");
 }
 
 export function listDestructionResults(taakId: string, taakuitvoeringId: string) {

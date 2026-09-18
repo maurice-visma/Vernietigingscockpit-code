@@ -22,6 +22,11 @@ type ControllerMethod = {
 const routes: ControllerMethod[] = [
   {
     controller: StartentaakController.prototype,
+    method: 'listTaakuitvoeringen',
+    roles: ALL_COCKPIT_ROLES,
+  },
+  {
+    controller: StartentaakController.prototype,
     method: 'getTaakuitvoering',
     roles: ALL_COCKPIT_ROLES,
   },
@@ -53,6 +58,11 @@ const routes: ControllerMethod[] = [
   {
     controller: DossierController.prototype,
     method: 'markeerReviewregelsBeoordeeld',
+    roles: RECORDMANAGER_ONLY,
+  },
+  {
+    controller: DossierController.prototype,
+    method: 'doorzettenNaarProceseigenaar',
     roles: RECORDMANAGER_ONLY,
   },
   {

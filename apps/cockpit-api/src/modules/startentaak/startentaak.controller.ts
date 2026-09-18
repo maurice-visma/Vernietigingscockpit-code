@@ -7,6 +7,12 @@ import { StartentaakService } from './startentaak.service';
 export class StartentaakController {
   constructor(private readonly startentaakService: StartentaakService) {}
 
+  @Get()
+  @Roles(...ALL_COCKPIT_ROLES)
+  listTaakuitvoeringen() {
+    return this.startentaakService.listTaakuitvoeringen();
+  }
+
   @Get(':taakuitvoeringId')
   @Roles(...ALL_COCKPIT_ROLES)
   getTaakuitvoering(

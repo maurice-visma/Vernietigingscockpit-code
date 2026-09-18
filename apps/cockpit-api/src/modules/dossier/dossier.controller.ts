@@ -4,11 +4,15 @@ import { UserContext } from '../auth/user-context';
 import { Roles } from '../auth/roles.decorator';
 import { DOSSIER_READ_ROLES, RECORDMANAGER_ONLY } from '../auth/role-policy';
 import { DossierService } from './dossier.service';
+import { WorkflowService } from '../workflow/workflow.service';
 import { MarkeerBeoordeeldDto, ReviewregelQueryDto, UpdateReviewregelDto } from './dossier.dto';
 
 @Controller('taken/:taakId/taakuitvoeringen/:taakuitvoeringId')
 export class DossierController {
-  constructor(private readonly dossierService: DossierService) {}
+  constructor(
+    private readonly dossierService: DossierService,
+    private readonly workflowService: WorkflowService,
+  ) {}
 
   @Get('reviewregels')
   @Roles(...DOSSIER_READ_ROLES)
@@ -41,6 +45,21 @@ export class DossierController {
     @CurrentUser() gebruiker: UserContext,
   ) {
     return this.dossierService.markeerBeoordeeld({ taakId, taakuitvoeringId }, dto, gebruiker);
+  }
+
+  @Post('review/doorzetten')
+  @Roles(...RECORDMANAGER_ONLY)
+  doorzettenNaarProceseigenaar(
+    @Param('taakId') taakId: string,
+    @Param('taakuitvoeringId') taakuitvoeringId: string,
+    @CurrentUser() gebruiker: UserContext,
+  ) {
+    return this.workflowService.transition(
+      { taakId, taakuitvoeringId },
+      'wacht_op_proceseigenaar',
+      gebruiker,
+      'review.doorgestuurd.proceseigenaar',
+    );
   }
 
   @Get('resultaatregels')

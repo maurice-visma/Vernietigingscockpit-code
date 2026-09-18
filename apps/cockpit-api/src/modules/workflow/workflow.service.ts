@@ -16,6 +16,13 @@ export interface WorkflowTransitionResult extends Taakuitvoering {
   eventType: string;
 }
 
+export interface TaakuitvoeringOverzicht extends Taakuitvoering {
+  naam: string;
+  frequentie: string;
+  recordmanager: string;
+  gestartOp?: string;
+}
+
 const allowedTransitions: Partial<Record<WorkflowStatus, WorkflowStatus[]>> = {
   concept: ['selectie_bezig'],
   selectie_bezig: ['review'],
@@ -30,6 +37,36 @@ const allowedTransitions: Partial<Record<WorkflowStatus, WorkflowStatus[]>> = {
 @Injectable()
 export class WorkflowService {
   constructor(private readonly db: DbService) {}
+
+  async listTaakuitvoeringen(): Promise<{ items: TaakuitvoeringOverzicht[] }> {
+    const { rows } = await this.db.query<{
+      taakId: string;
+      taakuitvoeringId: string;
+      status: WorkflowStatus;
+      huidigeStap: string;
+      bijgewerktOp: Date;
+      naam: string;
+      frequentie: string;
+      recordmanager: string;
+      gestartOp: Date | null;
+    }>(`
+      SELECT t.id AS "taakId", tu.id AS "taakuitvoeringId", tu.status,
+        tu.huidige_stap AS "huidigeStap", tu.updated_at AS "bijgewerktOp",
+        t.naam, t.frequentie, COALESCE(t.eigenaar, '') AS recordmanager,
+        tu.gestart_op AS "gestartOp"
+      FROM taakuitvoeringen tu
+      JOIN taken t ON t.id = tu.taak_id
+      ORDER BY tu.updated_at DESC
+    `);
+
+    return {
+      items: rows.map((row) => ({
+        ...row,
+        bijgewerktOp: row.bijgewerktOp.toISOString(),
+        gestartOp: row.gestartOp?.toISOString(),
+      })),
+    };
+  }
 
   async getTaakuitvoering(context: TaakContext): Promise<Taakuitvoering> {
     const { rows } = await this.db.query<{

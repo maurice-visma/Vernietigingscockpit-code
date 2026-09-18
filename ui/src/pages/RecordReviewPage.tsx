@@ -12,7 +12,11 @@ import ReviewSelectionBar from "../features/task-execution/review/components/Rev
 import ReviewTableFilters from "../features/task-execution/review/components/ReviewTableFilters";
 import ReviewValidationBanner from "../features/task-execution/review/components/ReviewValidationBanner";
 
-import { listReviewRows, markReviewRowsReviewed } from "../shared/api/cockpitApi";
+import {
+  listReviewRows,
+  markReviewRowsReviewed,
+  submitReviewToProcessOwner,
+} from "../shared/api/cockpitApi";
 import type { ColumnKey } from "../shared/types/reviewColumns";
 import type { VernietigingsObject } from "../shared/types/destruction";
 
@@ -142,10 +146,10 @@ export default function RecordReviewPage() {
         await markReviewRowsReviewed(taakId, id, reviewregelIds);
       }
 
+      await submitReviewToProcessOwner(taakId, id);
+
       setConfirmOpen(false);
-      navigate(
-        `/taak/${taakId}/taakuitvoering/${id}/accordering/proceseigenaar`
-      );
+      navigate("/dashboard");
     } catch {
       setActionError("Doorzetten naar accordering kon niet worden vastgelegd.");
     } finally {

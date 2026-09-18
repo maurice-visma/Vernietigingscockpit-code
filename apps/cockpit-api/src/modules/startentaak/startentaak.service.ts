@@ -5,6 +5,10 @@ import { Taakuitvoering, WorkflowService } from '../workflow/workflow.service';
 export class StartentaakService {
   constructor(private readonly workflowService: WorkflowService) {}
 
+  listTaakuitvoeringen() {
+    return this.workflowService.listTaakuitvoeringen();
+  }
+
   getTaakuitvoering(taakId: string, taakuitvoeringId: string): Promise<Taakuitvoering> {
     return this.workflowService.getTaakuitvoering({ taakId, taakuitvoeringId });
   }

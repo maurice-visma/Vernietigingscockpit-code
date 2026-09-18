@@ -10,6 +10,7 @@ import PageHeader from "../components/PageHeader";
 import TaskProgress from "../components/TaskProgress";
 import StatusBadge from "../components/StatusBadge";
 import { useAuth } from "../shared/auth/authContext";
+import { listTaskExecutions, type TaskExecutionSummary } from "../shared/api/cockpitApi";
 import {
   canAccessCapability,
   workflowRouteForRoles,
@@ -142,6 +143,51 @@ const STATUS_PRIORITY: Record<TaskExecutionStatus, number> = {
   GEPLAND: 2,
 };
 
+function mergeTaskExecutions(currentRows: TaskExecutionRow[], items: TaskExecutionSummary[]) {
+  const nextRows = [...currentRows];
+  items.forEach((item) => {
+    const index = nextRows.findIndex(
+      (row) => row.highlighted && row.taskId === item.taakId && row.taakuitvoeringId === item.taakuitvoeringId,
+    );
+    const updated = taskExecutionRow(item, index >= 0 ? nextRows[index] : undefined);
+    if (index >= 0) nextRows[index] = updated;
+    else nextRows.push(updated);
+  });
+  return nextRows;
+}
+
+function taskExecutionRow(item: TaskExecutionSummary, current?: TaskExecutionRow): TaskExecutionRow {
+  const steps: Record<string, { stap: string; voortgang: number }> = {
+    concept: { stap: "Selectie", voortgang: 0 },
+    selectie_bezig: { stap: "Selectie", voortgang: 20 },
+    review: { stap: "Beoordeling", voortgang: 40 },
+    wacht_op_proceseigenaar: { stap: "Accordering PO", voortgang: 55 },
+    wacht_op_archivaris: { stap: "Accordering Archivaris", voortgang: 70 },
+    goedgekeurd: { stap: "Uitvoering", voortgang: 80 },
+    vernietiging_bezig: { stap: "Uitvoering", voortgang: 90 },
+    afgerond: { stap: "Resultaat", voortgang: 100 },
+    gearchiveerd: { stap: "Resultaat", voortgang: 100 },
+  };
+  const step = steps[item.status] ?? { stap: item.huidigeStap, voortgang: current?.voortgang ?? 0 };
+  return {
+    id: current?.id ?? item.taakuitvoeringId,
+    taskId: item.taakId,
+    taakuitvoeringId: item.taakuitvoeringId,
+    naam: item.naam,
+    subtitle: item.gestartOp
+      ? `Gestart ${new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium" }).format(new Date(item.gestartOp))}`
+      : "Nog niet gestart",
+    taskLabel: `Taak: ${item.naam}`,
+    recordmanager: item.recordmanager,
+    status: "LOPEND",
+    stap: step.stap,
+    voortgang: step.voortgang,
+    dagenInStap: current?.dagenInStap ?? 0,
+    frequentie: item.frequentie,
+    highlighted: current?.highlighted,
+  };
+}
+
 function getActionLabel(status: TaskExecutionStatus) {
   if (status === "GEPLAND") {
     return "Starten";
@@ -173,6 +219,7 @@ export default function DashboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [rows, setRows] = useState(mockRows);
   const [statusFilter, setStatusFilter] =
     useState<TaskExecutionStatus | null>(null);
   const {
@@ -189,7 +236,13 @@ export default function DashboardPage() {
     STATUS_FILTERS.find((filter) => filter.value === statusFilter)?.label ??
     "Status filter";
 
-  const filteredRows = mockRows
+  useEffect(() => {
+    listTaskExecutions()
+      .then(({ items }) => setRows((currentRows) => mergeTaskExecutions(currentRows, items)))
+      .catch(() => undefined);
+  }, []);
+
+  const filteredRows = rows
     .filter((row) => {
       if (statusFilter && row.status !== statusFilter) {
         return false;
