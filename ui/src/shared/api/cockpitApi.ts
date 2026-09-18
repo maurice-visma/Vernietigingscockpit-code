@@ -1,6 +1,7 @@
 import type { VernietigingsObject } from "../types/destruction";
 import type { DestructionResultRow } from "../types/destructionResult";
 import { reviewRows } from "../mocks/reviewRows";
+import { authHeaders } from "../auth/keycloakAuth";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -16,9 +17,12 @@ type ActieStatus = {
 };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const authenticationHeaders = await authHeaders();
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...authenticationHeaders,
       ...options?.headers,
     },
     ...options,

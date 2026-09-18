@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { RolesGuard } from './modules/auth/roles.guard';
 import { BesluitvormingModule } from './modules/besluitvorming/besluitvorming.module';
 import { DossierModule } from './modules/dossier/dossier.module';
 import { StartentaakModule } from './modules/startentaak/startentaak.module';
@@ -11,10 +12,11 @@ import { UitvoeringModule } from './modules/uitvoering/uitvoering.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { HealthController } from './health.controller';
 import { DatabaseModule } from './database/database.module';
+import { validateEnvironment } from './config/environment';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     DatabaseModule,
     AuthModule,
     StartentaakModule,
@@ -29,6 +31,10 @@ import { DatabaseModule } from './database/database.module';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

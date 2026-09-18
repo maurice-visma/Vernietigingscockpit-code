@@ -1,9 +1,11 @@
 import
 { 
     ChevronDown, 
-    CircleHelp, 
+    CircleHelp,
+    LogOut,
     Settings 
 } from "lucide-react";
+import { useAuth } from "../shared/auth/authContext";
 
 type Props = {
   expanded?: boolean;
@@ -12,6 +14,9 @@ type Props = {
 export default function SidebarFooter({
   expanded = false,
 }: Props) {
+  const auth = useAuth();
+  const user = auth.user;
+
   return (
     <div className="border-t border-gray-200 px-2 py-4">
 
@@ -23,7 +28,7 @@ export default function SidebarFooter({
         <div className="flex min-w-0 items-center gap-3">
           {/* avatar */}
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
-            JD
+            {user?.initials ?? "VC"}
           </div>
 
           {/* name */}
@@ -32,7 +37,7 @@ export default function SidebarFooter({
               expanded ? "max-w-[140px] opacity-100" : "max-w-0 opacity-0"
             }`}
           >
-            Jan de Vries
+            {user?.name ?? "Niet aangemeld"}
           </span>
         </div>
 
@@ -61,6 +66,15 @@ export default function SidebarFooter({
           expanded={expanded}
         />
 
+        {auth.mode === "keycloak" ? (
+          <SidebarFooterItem
+            icon={<LogOut className="w-5 h-5 text-slate-700" />}
+            label="Uitloggen"
+            expanded={expanded}
+            onClick={auth.logout}
+          />
+        ) : null}
+
       </div>
     </div>
   );
@@ -70,13 +84,24 @@ function SidebarFooterItem({
   icon,
   label,
   expanded = false,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   expanded?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       className={`flex cursor-pointer items-center rounded-md py-2 text-gray-700 hover:bg-gray-50 ${
         expanded ? "gap-3 px-2" : "justify-start px-4"
       }`}

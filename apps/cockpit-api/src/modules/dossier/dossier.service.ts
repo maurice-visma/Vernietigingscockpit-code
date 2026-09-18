@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { TaakContext } from '../../common/api-types';
 import { DbService } from '../../database/db.service';
+import { UserContext } from '../auth/user-context';
 import { MarkeerBeoordeeldDto, ReviewregelQueryDto, UpdateReviewregelDto } from './dossier.dto';
 
 type Reviewregel = {
@@ -121,67 +122,163 @@ export class DossierService {
     };
   }
 
-  async updateReviewregel(context: TaakContext, reviewregelId: string, dto: UpdateReviewregelDto) {
-    const { rows } = await this.db.query(
-      `
-        UPDATE vernietigingsobjecten vo
-        SET review_status = COALESCE($4, vo.review_status),
-            reden = COALESCE($5, vo.reden),
-            toelichting = COALESCE($6, vo.toelichting),
-            updated_at = now()
-        FROM dossiers d
-        JOIN taakuitvoeringen tu ON tu.id = d.taakuitvoering_id
-        WHERE vo.dossier_id = d.id
-          AND tu.taak_id = $1
-          AND tu.id = $2
-          AND vo.id = $3
-        RETURNING vo.id
-      `,
-      [
-        context.taakId,
-        context.taakuitvoeringId,
-        reviewregelId,
-        dto.status,
-        dto.uitzonderingsreden,
-        dto.toelichting,
-      ],
-    );
+  async updateReviewregel(
+    context: TaakContext,
+    reviewregelId: string,
+    dto: UpdateReviewregelDto,
+    gebruiker: UserContext,
+  ) {
+    return this.db.transaction(async (client) => {
+      const { rows: beforeRows } = await client.query<{
+        id: string;
+        status?: string;
+        reden?: string;
+        toelichting?: string;
+        beoordeeld: boolean;
+        uitgesloten: boolean;
+      }>(
+        `
+          SELECT
+            vo.id,
+            vo.review_status AS status,
+            vo.reden,
+            vo.toelichting,
+            vo.beoordeeld,
+            vo.uitgesloten
+          FROM vernietigingsobjecten vo
+          JOIN dossiers d ON d.id = vo.dossier_id
+          JOIN taakuitvoeringen tu ON tu.id = d.taakuitvoering_id
+          WHERE tu.taak_id = $1
+            AND tu.id = $2
+            AND vo.id = $3
+          FOR UPDATE
+        `,
+        [context.taakId, context.taakuitvoeringId, reviewregelId],
+      );
 
-    return {
-      ...context,
-      reviewregelId,
-      ...dto,
-      gevonden: Boolean(rows.length),
-      bijgewerktOp: new Date().toISOString(),
-    };
+      if (!beforeRows[0]) {
+        throw new NotFoundException('Reviewregel niet gevonden.');
+      }
+
+      const vorigeWaarden = beforeRows[0];
+      const { rows } = await client.query<{
+        id: string;
+        status?: string;
+        reden?: string;
+        toelichting?: string;
+        bijgewerktOp: Date;
+      }>(
+        `
+          UPDATE vernietigingsobjecten vo
+          SET review_status = COALESCE($4, vo.review_status),
+              reden = COALESCE($5, vo.reden),
+              toelichting = COALESCE($6, vo.toelichting),
+              updated_at = now()
+          FROM dossiers d
+          JOIN taakuitvoeringen tu ON tu.id = d.taakuitvoering_id
+          WHERE vo.dossier_id = d.id
+            AND tu.taak_id = $1
+            AND tu.id = $2
+            AND vo.id = $3
+          RETURNING
+            vo.id,
+            vo.review_status AS status,
+            vo.reden,
+            vo.toelichting,
+            vo.updated_at AS "bijgewerktOp"
+        `,
+        [
+          context.taakId,
+          context.taakuitvoeringId,
+          reviewregelId,
+          dto.status,
+          dto.uitzonderingsreden,
+          dto.toelichting,
+        ],
+      );
+
+      await client.query(
+        `
+          INSERT INTO audit_events (taakuitvoering_id, vernietigingsobject_id, actor, event_type, message, payload)
+          VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+        `,
+        [
+          context.taakuitvoeringId,
+          reviewregelId,
+          gebruiker.id,
+          'dossier.reviewregel.bijgewerkt',
+          'Reviewregel bijgewerkt.',
+          JSON.stringify({
+            taakId: context.taakId,
+            taakuitvoeringId: context.taakuitvoeringId,
+            reviewregelId,
+            actor: gebruiker.id,
+            rollen: gebruiker.rollen,
+            vorigeWaarden,
+            nieuweWaarden: rows[0],
+          }),
+        ],
+      );
+
+      return {
+        ...context,
+        reviewregelId,
+        ...dto,
+        gevonden: true,
+        bijgewerktOp: rows[0].bijgewerktOp.toISOString(),
+      };
+    });
   }
 
-  async markeerBeoordeeld(context: TaakContext, dto: MarkeerBeoordeeldDto) {
-    const { rows } = await this.db.query<{ id: string }>(
-      `
-        UPDATE vernietigingsobjecten vo
-        SET beoordeeld = true,
-            updated_at = now()
-        FROM dossiers d
-        JOIN taakuitvoeringen tu ON tu.id = d.taakuitvoering_id
-        WHERE vo.dossier_id = d.id
-          AND tu.taak_id = $1
-          AND tu.id = $2
-          AND vo.id = ANY($3::text[])
-        RETURNING vo.id
-      `,
-      [context.taakId, context.taakuitvoeringId, dto.reviewregelIds],
-    );
+  async markeerBeoordeeld(context: TaakContext, dto: MarkeerBeoordeeldDto, gebruiker: UserContext) {
+    return this.db.transaction(async (client) => {
+      const { rows } = await client.query<{ id: string }>(
+        `
+          UPDATE vernietigingsobjecten vo
+          SET beoordeeld = true,
+              updated_at = now()
+          FROM dossiers d
+          JOIN taakuitvoeringen tu ON tu.id = d.taakuitvoering_id
+          WHERE vo.dossier_id = d.id
+            AND tu.taak_id = $1
+            AND tu.id = $2
+            AND vo.id = ANY($3::text[])
+          RETURNING vo.id
+        `,
+        [context.taakId, context.taakuitvoeringId, dto.reviewregelIds],
+      );
 
-    const updatedIds = new Set(rows.map((row) => row.id));
+      const updatedIds = new Set(rows.map((row) => row.id));
+      await client.query(
+        `
+          INSERT INTO audit_events (taakuitvoering_id, actor, event_type, message, payload)
+          VALUES ($1, $2, $3, $4, $5::jsonb)
+        `,
+        [
+          context.taakuitvoeringId,
+          gebruiker.id,
+          'dossier.reviewregels.beoordeeld',
+          'Reviewregels gemarkeerd als beoordeeld.',
+          JSON.stringify({
+            taakId: context.taakId,
+            taakuitvoeringId: context.taakuitvoeringId,
+            actor: gebruiker.id,
+            rollen: gebruiker.rollen,
+            gevraagd: dto.reviewregelIds,
+            bijgewerkt: rows.map((row) => row.id),
+            aantalBijgewerkt: rows.length,
+          }),
+        ],
+      );
 
-    return {
-      ...context,
-      items: dto.reviewregelIds.map((reviewregelId) => ({
-        reviewregelId,
-        status: updatedIds.has(reviewregelId) ? 'beoordeeld' : 'niet_gevonden',
-      })),
-    };
+      return {
+        ...context,
+        items: dto.reviewregelIds.map((reviewregelId) => ({
+          reviewregelId,
+          status: updatedIds.has(reviewregelId) ? 'beoordeeld' : 'niet_gevonden',
+        })),
+      };
+    });
   }
 
   async listResultaatregels(context: TaakContext): Promise<ResultaatregelListResponse> {
@@ -215,11 +312,110 @@ export class DossierService {
     };
   }
 
-  getVernietigingsverklaring(context: TaakContext) {
+  async getVernietigingsverklaring(context: TaakContext) {
+    const { rows } = await this.db.query<{
+      taakNaam: string;
+      taakuitvoeringStatus: string;
+      huidigeStap: string;
+      dossierId: string;
+      dossierNaam: string;
+      dossierStatus: string;
+      dossierMetadata: Record<string, unknown>;
+    }>(
+      `
+        SELECT
+          t.naam AS "taakNaam",
+          tu.status AS "taakuitvoeringStatus",
+          tu.huidige_stap AS "huidigeStap",
+          d.id::text AS "dossierId",
+          d.naam AS "dossierNaam",
+          d.status AS "dossierStatus",
+          d.metadata AS "dossierMetadata"
+        FROM taakuitvoeringen tu
+        JOIN taken t ON t.id = tu.taak_id
+        JOIN dossiers d ON d.taakuitvoering_id = tu.id
+        WHERE tu.taak_id = $1
+          AND tu.id = $2
+      `,
+      [context.taakId, context.taakuitvoeringId],
+    );
+
+    if (!rows[0]) {
+      throw new NotFoundException('Dossier niet gevonden.');
+    }
+
+    const [{ rows: auditEvents }, { rows: resultaatStatussen }, { rows: reviewSamenvatting }] = await Promise.all([
+      this.db.query<{
+        id: string;
+        actor: string;
+        eventType: string;
+        message: string;
+        payload: Record<string, unknown>;
+        createdAt: Date;
+      }>(
+        `
+          SELECT
+            id::text,
+            actor,
+            event_type AS "eventType",
+            message,
+            payload,
+            created_at AS "createdAt"
+          FROM audit_events
+          WHERE taakuitvoering_id = $1
+          ORDER BY created_at ASC
+        `,
+        [context.taakuitvoeringId],
+      ),
+      this.db.query<{ status: string; aantal: string }>(
+        `
+          SELECT vernietigingsstatus AS status, count(*)::text AS aantal
+          FROM vernietigingsresultaten
+          WHERE taakuitvoering_id = $1
+          GROUP BY vernietigingsstatus
+          ORDER BY vernietigingsstatus ASC
+        `,
+        [context.taakuitvoeringId],
+      ),
+      this.db.query<{ totaal: string; beoordeeld: string; uitgesloten: string }>(
+        `
+          SELECT
+            count(*)::text AS totaal,
+            count(*) FILTER (WHERE beoordeeld)::text AS beoordeeld,
+            count(*) FILTER (WHERE uitgesloten)::text AS uitgesloten
+          FROM vernietigingsobjecten vo
+          JOIN dossiers d ON d.id = vo.dossier_id
+          WHERE d.taakuitvoering_id = $1
+        `,
+        [context.taakuitvoeringId],
+      ),
+    ]);
+
+    const heeftFinaleAccordering = auditEvents.some(
+      (event) => event.eventType === 'besluitvorming.accordering.archivaris',
+    );
+
     return {
       ...context,
-      documentId: `verklaring-${context.taakuitvoeringId}`,
-      status: 'beschikbaar',
+      verklaringId: `verklaring-${context.taakuitvoeringId}`,
+      status: heeftFinaleAccordering ? 'beschikbaar' : 'niet_beschikbaar',
+      ontbrekendeVoorwaarden: heeftFinaleAccordering ? [] : ['Finale accordering door archivaris ontbreekt.'],
+      gegenereerdOp: new Date().toISOString(),
+      dossier: rows[0],
+      selectieContext: rows[0].dossierMetadata?.selectieContext,
+      reviewSamenvatting: {
+        totaal: Number(reviewSamenvatting[0]?.totaal ?? 0),
+        beoordeeld: Number(reviewSamenvatting[0]?.beoordeeld ?? 0),
+        uitgesloten: Number(reviewSamenvatting[0]?.uitgesloten ?? 0),
+      },
+      resultaatStatussen: resultaatStatussen.map((row) => ({
+        status: row.status,
+        aantal: Number(row.aantal),
+      })),
+      auditEvents: auditEvents.map((event) => ({
+        ...event,
+        createdAt: event.createdAt.toISOString(),
+      })),
     };
   }
 
