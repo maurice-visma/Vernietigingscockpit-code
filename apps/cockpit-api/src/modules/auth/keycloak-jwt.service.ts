@@ -14,22 +14,22 @@ export class KeycloakJwtService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  isConfigured(): boolean {
-    return Boolean(this.issuer);
-  }
-
   async validateBearerToken(token: string): Promise<UserContext> {
-    if (!this.issuer) {
-      throw new UnauthorizedException('Keycloak issuer is niet geconfigureerd.');
+    if (!this.issuer || !this.audience) {
+      throw new UnauthorizedException('Keycloak is niet volledig geconfigureerd.');
     }
 
-    const { jwtVerify } = await this.loadJose();
-    const { payload } = await jwtVerify(token, await this.getJwks(), {
-      issuer: this.issuer,
-      audience: this.audience,
-    });
+    try {
+      const { jwtVerify } = await this.loadJose();
+      const { payload } = await jwtVerify(token, await this.getJwks(), {
+        issuer: this.issuer,
+        audience: this.audience,
+      });
 
-    return this.payloadToUserContext(payload);
+      return this.payloadToUserContext(payload);
+    } catch {
+      throw new UnauthorizedException('Bearer token is ongeldig of verlopen.');
+    }
   }
 
   private async loadJose() {

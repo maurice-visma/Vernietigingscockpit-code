@@ -59,10 +59,6 @@ export class AuthGuard implements CanActivate {
   }
 
   private devHeaderFallbackEnabled(): boolean {
-    if (!this.keycloakJwtService.isConfigured()) {
-      return true;
-    }
-
     return this.configService.get<string>('AUTH_DEV_HEADER_FALLBACK') === 'true';
   }
 
