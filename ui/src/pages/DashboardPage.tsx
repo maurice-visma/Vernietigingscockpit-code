@@ -9,6 +9,11 @@ import
 import PageHeader from "../components/PageHeader";
 import TaskProgress from "../components/TaskProgress";
 import StatusBadge from "../components/StatusBadge";
+import { useAuth } from "../shared/auth/authContext";
+import {
+  canAccessCapability,
+  workflowRouteForRoles,
+} from "../shared/auth/roleAccess";
 
 type TaskExecutionStatus =
   | "VERTRAAGD"
@@ -75,6 +80,20 @@ const mockRows: TaskExecutionRow[] = [
     stap: "Uitvoering",
     voortgang: 65,
     dagenInStap: 2,
+    frequentie: "Jaarlijks",
+  },
+  {
+    id: "TI-106",
+    taskId: "2",
+    taakuitvoeringId: "2",
+    naam: "Vergunningen 2024",
+    subtitle: "Gestart 15 mei 2026",
+    taskLabel: "Taak: Vergunningenarchief",
+    recordmanager: "M. de Boer",
+    status: "LOPEND",
+    stap: "Accordering Archivaris",
+    voortgang: 78,
+    dagenInStap: 1,
     frequentie: "Jaarlijks",
   },
   {
@@ -150,12 +169,17 @@ function useDropdown() {
 }
 
 export default function DashboardPage() {
+  const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<TaskExecutionStatus | null>(null);
-  const status = useDropdown();
+  const {
+    open: statusOpen,
+    setOpen: setStatusOpen,
+    ref: statusRef,
+  } = useDropdown();
   const isTaskOverview = location.pathname.startsWith("/taken");
   const pageTitle = isTaskOverview ? "Taken" : "Dashboard";
   const pageSubtitle = isTaskOverview
@@ -235,12 +259,12 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="relative" ref={status.ref}>
+          <div className="relative" ref={statusRef}>
             <button
               type="button"
-              onClick={() => status.setOpen((current) => !current)}
+              onClick={() => setStatusOpen((current) => !current)}
               className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-gray-50 ${
-                status.open || statusFilter !== null
+                statusOpen || statusFilter !== null
                   ? "border-blue-500 bg-blue-50 text-blue-600"
                   : "border-gray-200 text-blue-600"
               }`}
@@ -249,7 +273,7 @@ export default function DashboardPage() {
               {activeStatusLabel}
             </button>
 
-            {status.open && (
+            {statusOpen && (
               <div className="absolute left-0 top-full z-20 mt-1 min-w-[190px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                 {STATUS_FILTERS.map((filter) => (
                   <button
@@ -257,7 +281,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setStatusFilter(filter.value);
-                      status.setOpen(false);
+                      setStatusOpen(false);
                     }}
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 ${
                       statusFilter === filter.value
@@ -302,7 +326,22 @@ export default function DashboardPage() {
             </thead>
 
             <tbody>
-              {filteredRows.map((row) => (
+              {filteredRows.map((row) => {
+                const workflowRoute = workflowRouteForRoles(
+                  auth.user?.roles ?? [],
+                  row.stap,
+                  row.taskId,
+                  row.taakuitvoeringId,
+                );
+                const beheerRoute = canAccessCapability(
+                  auth.user?.roles ?? [],
+                  "taskDefinition",
+                )
+                  ? `/taak/${row.taskId}`
+                  : null;
+                const actionRoute = workflowRoute ?? beheerRoute;
+
+                return (
                 <tr
                   key={row.id}
                   className={`h-[84px] border-b border-gray-100 transition-colors hover:bg-gray-50 ${
@@ -351,20 +390,21 @@ export default function DashboardPage() {
                   </td>
 
                   <td className="px-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          `/taak/${row.taskId}/taakuitvoering/${row.taakuitvoeringId}/selectie`
-                        )
-                      }
-                      className="inline-flex h-10 w-[170px] items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      {getActionLabel(row.status)}
-                    </button>
+                    {actionRoute ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(actionRoute)}
+                        className="inline-flex h-10 w-[170px] items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      >
+                        {workflowRoute ? getActionLabel(row.status) : "Bekijken"}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-500">Geen actie voor uw rol</span>
+                    )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
 
               {filteredRows.length === 0 && (
                 <tr>

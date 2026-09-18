@@ -11,6 +11,8 @@ import AppShellWithTaskSidebarAndContextSidebar from "./layouts/AppShellWithCont
 import AppShellWithTaskSidebar from "./layouts/AppShellWithTaskSidebar";
 import { AuthProvider } from "./shared/auth/AuthProvider";
 import RequireAuth from "./shared/auth/RequireAuth";
+import RequireCapability from "./shared/auth/RequireCapability";
+import type { Capability } from "./shared/auth/roleAccess";
 
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -50,7 +52,7 @@ export default function App() {
           >
             <Route
               path="/dashboard"
-              element={<DashboardPage />}
+              element={<CapabilityRoute capability="dashboard"><DashboardPage /></CapabilityRoute>}
             />
           </Route>
 
@@ -62,9 +64,7 @@ export default function App() {
           >
             <Route
               path="/taak/:id"
-              element={
-                <TaskDefinitionDetailPage />
-              }
+              element={<CapabilityRoute capability="taskDefinition"><TaskDefinitionDetailPage /></CapabilityRoute>}
             />
           </Route>
 
@@ -77,37 +77,37 @@ export default function App() {
             <Route
               path="/taak/:taakId/taakuitvoering/:id/selectie"
               element={
-                <RecordSelectionPage />
+                <CapabilityRoute capability="selection"><RecordSelectionPage /></CapabilityRoute>
               }
             />
             <Route
               path="/taak/:taakId/taakuitvoering/:id/beoordeling"
               element={
-                <RecordReviewPage />
+                <CapabilityRoute capability="review"><RecordReviewPage /></CapabilityRoute>
               }
             />
             <Route
               path="/taak/:taakId/taakuitvoering/:id/accordering/proceseigenaar"
               element={
-                <ProcessOwnerApprovalPage />
+                <CapabilityRoute capability="processOwnerApproval"><ProcessOwnerApprovalPage /></CapabilityRoute>
               }
             />
             <Route
               path="/taak/:taakId/taakuitvoering/:id/accordering/archivaris"
               element={
-                <ArchivistApprovalPage />
+                <CapabilityRoute capability="archivistApproval"><ArchivistApprovalPage /></CapabilityRoute>
               }
             />
             <Route
               path="/taak/:taakId/taakuitvoering/:id/uitvoering"
               element={
-                <RecordDestructionPage />
+                <CapabilityRoute capability="destruction"><RecordDestructionPage /></CapabilityRoute>
               }
             />
             <Route
               path="/taak/:taakId/taakuitvoering/:id/resultaat"
               element={
-                <DestructionResultPage />
+                <CapabilityRoute capability="results"><DestructionResultPage /></CapabilityRoute>
               }
             />
           </Route>
@@ -134,4 +134,14 @@ export default function App() {
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
   return <RequireAuth>{children}</RequireAuth>;
+}
+
+function CapabilityRoute({
+  capability,
+  children,
+}: {
+  capability: Capability;
+  children: ReactNode;
+}) {
+  return <RequireCapability capability={capability}>{children}</RequireCapability>;
 }
