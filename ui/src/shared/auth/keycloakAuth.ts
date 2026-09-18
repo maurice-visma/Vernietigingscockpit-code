@@ -2,6 +2,7 @@ import {
   accessTokenNeedsRefresh,
   requestTokenRefresh,
 } from "./oidcSession";
+import { claimsFromTokens, type TokenClaims } from "./keycloakClaims";
 
 const AUTH_SESSION_KEY = "vernietigingscockpit.auth.session";
 const AUTH_FLOW_KEY = "vernietigingscockpit.auth.pkce";
@@ -39,17 +40,6 @@ type StoredFlow = {
   codeVerifier: string;
   redirectUri: string;
   returnTo: string;
-};
-
-type TokenClaims = {
-  sub?: string;
-  name?: string;
-  preferred_username?: string;
-  email?: string;
-  realm_access?: {
-    roles?: string[];
-  };
-  resource_access?: Record<string, { roles?: string[] }>;
 };
 
 export function authMode(): AuthMode {
@@ -190,8 +180,7 @@ export async function completeLoginCallback(callbackUrl: URL) {
     }
 
     const tokens = (await tokenResponse.json()) as TokenResponse;
-    const claims = decodeJwtClaims(tokens.id_token ?? tokens.access_token);
-    const user = userFromClaims(claims);
+    const user = userFromTokens(tokens);
     const session: AuthSession = {
       accessToken: tokens.access_token,
       idToken: tokens.id_token,
@@ -250,13 +239,12 @@ async function refreshAuthSession(session: AuthSession): Promise<AuthSession | n
       import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
       session.refreshToken!,
     );
-    const claims = decodeJwtClaims(tokens.id_token ?? tokens.access_token);
     const refreshedSession: AuthSession = {
       accessToken: tokens.access_token,
       idToken: tokens.id_token ?? session.idToken,
       refreshToken: tokens.refresh_token ?? session.refreshToken,
       expiresAt: Date.now() + (tokens.expires_in ?? 300) * 1000,
-      user: userFromClaims(claims),
+      user: userFromTokens(tokens),
     };
 
     window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(refreshedSession));
@@ -357,16 +345,8 @@ function base64Url(bytes: Uint8Array) {
   return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function decodeJwtClaims(token: string): TokenClaims {
-  const [, payload] = token.split(".");
-  if (!payload) {
-    return {};
-  }
-
-  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  const json = window.atob(padded);
-  return JSON.parse(json) as TokenClaims;
+export function userFromTokens(tokens: Pick<TokenResponse, "access_token" | "id_token">): AuthUser {
+  return userFromClaims(claimsFromTokens(tokens.access_token, tokens.id_token));
 }
 
 function userFromClaims(claims: TokenClaims): AuthUser {
