@@ -49,6 +49,12 @@ mapper zodat het access token `vernietigingscockpit-api` in de `aud`-claim
 bevat. In Keycloak-modus stuurt de UI
 `Authorization: Bearer <access_token>` naar de API.
 
+De UI vernieuwt een access token dertig seconden voor afloop via het OIDC token
+endpoint en het refresh token van de publieke client. Bij een verlopen of
+ingetrokken refreshsessie wordt de lokale sessie verwijderd en start de
+PKCE-login opnieuw; er wordt niet teruggevallen op developmentheaders. Zie
+[`docs/adr/0003-keycloak-sessievernieuwing.md`](docs/adr/0003-keycloak-sessievernieuwing.md).
+
 Lokale smoke test met de meegeleverde Keycloak-container:
 
 1. Start de API met:
