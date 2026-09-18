@@ -1,23 +1,33 @@
 # Vernietigingscockpit-code
 Codebase voor de vernietigingscockpit, monorepo frontend en backend
 
+## Authenticatieontwerp
+
+De normatieve bron is de
+[`Review/architectuur`](https://github.com/GemeenteArnhem/Vernietigingscockpit/tree/Review/architectuur)-documentatie.
+Deze implementatie werkt de fail-closed configuratie uit in
+[`docs/adr/0002-authenticatie-fail-closed.md`](docs/adr/0002-authenticatie-fail-closed.md).
+
 ## Lokale authenticatie
 
 De API ondersteunt Keycloak/OIDC JWT-validatie via:
 
 - `KEYCLOAK_ISSUER`, bijvoorbeeld `http://localhost:8180/realms/master`
 - `KEYCLOAK_JWKS_URI`, optioneel; standaard `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`
-- `KEYCLOAK_AUDIENCE`, optioneel wanneer audience-validatie nodig is
+- `KEYCLOAK_AUDIENCE`, verplicht zodra `KEYCLOAK_ISSUER` is geconfigureerd
 - `AUTH_DEV_HEADER_FALLBACK=true`, om lokaal tijdelijk `x-user-id`, `x-user-name`
   en `x-user-roles` te blijven gebruiken
 
-Zet `AUTH_DEV_HEADER_FALLBACK=false` in combinatie met `KEYCLOAK_ISSUER` om
-requests zonder `Authorization: Bearer <token>` te weigeren.
+De API accepteert development headers uitsluitend wanneer
+`AUTH_DEV_HEADER_FALLBACK=true` expliciet is ingesteld. Zonder deze opt-in
+weigert de API requests zonder `Authorization: Bearer <token>`. In productie
+zijn `KEYCLOAK_ISSUER`, `KEYCLOAK_AUDIENCE` en
+`AUTH_DEV_HEADER_FALLBACK=false` verplicht; bij ontbreken start de API niet.
 
-De frontend gebruikt standaard development headers, zodat lokaal ontwikkelen
-zonder Keycloak blijft werken:
+De frontend gebruikt alleen na een expliciete keuze development headers, zodat
+lokaal ontwikkelen zonder Keycloak mogelijk blijft:
 
-- `VITE_AUTH_MODE=dev`, standaardwaarde; stuurt `x-user-id`, `x-user-name` en
+- `VITE_AUTH_MODE=dev`; stuurt `x-user-id`, `x-user-name` en
   `x-user-roles` naar de API
 - `VITE_DEV_USER_ID`, optioneel; standaard `dev-user`
 - `VITE_DEV_USER_NAME`, optioneel; standaard `Lokale ontwikkelaar`
@@ -34,13 +44,15 @@ Voor Keycloak/OIDC gebruikt de frontend Authorization Code Flow met PKCE:
 
 Configureer in Keycloak een public client met Standard flow en PKCE `S256`.
 Voeg `http://localhost:5173/auth/callback` toe als valid redirect URI en
-`http://localhost:5173` als web origin. In Keycloak-modus stuurt de UI
+`http://localhost:5173` als web origin. Configureer daarnaast een audience
+mapper zodat het access token `vernietigingscockpit-api` in de `aud`-claim
+bevat. In Keycloak-modus stuurt de UI
 `Authorization: Bearer <access_token>` naar de API.
 
 Lokale smoke test met de meegeleverde Keycloak-container:
 
 1. Start de API met:
-   `PORT=3001 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5434/vernietigingscockpit KEYCLOAK_ISSUER=http://127.0.0.1:8180/realms/master AUTH_DEV_HEADER_FALLBACK=true npm run api:dev`
+   `PORT=3001 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5434/vernietigingscockpit KEYCLOAK_ISSUER=http://127.0.0.1:8180/realms/master KEYCLOAK_AUDIENCE=vernietigingscockpit-api AUTH_DEV_HEADER_FALLBACK=false npm run api:dev`
 2. Start de UI met:
    `VITE_API_BASE_URL=http://127.0.0.1:3001/v1 VITE_AUTH_MODE=keycloak VITE_KEYCLOAK_ISSUER=http://127.0.0.1:8180/realms/master VITE_KEYCLOAK_CLIENT_ID=vernietigingscockpit-ui VITE_KEYCLOAK_REDIRECT_URI=http://127.0.0.1:5173/auth/callback npm run dev -- --host 127.0.0.1 --port 5173`
 3. Open `http://127.0.0.1:5173/dashboard` en log in via Keycloak.

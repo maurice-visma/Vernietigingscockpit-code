@@ -46,7 +46,7 @@ type TokenClaims = {
 };
 
 export function authMode(): AuthMode {
-  return import.meta.env.VITE_AUTH_MODE === "keycloak" ? "keycloak" : "dev";
+  return import.meta.env.VITE_AUTH_MODE === "dev" ? "dev" : "keycloak";
 }
 
 export function isKeycloakAuthEnabled() {

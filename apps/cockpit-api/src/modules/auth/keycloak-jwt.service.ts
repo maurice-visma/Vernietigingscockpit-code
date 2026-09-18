@@ -14,13 +14,9 @@ export class KeycloakJwtService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  isConfigured(): boolean {
-    return Boolean(this.issuer);
-  }
-
   async validateBearerToken(token: string): Promise<UserContext> {
-    if (!this.issuer) {
-      throw new UnauthorizedException('Keycloak issuer is niet geconfigureerd.');
+    if (!this.issuer || !this.audience) {
+      throw new UnauthorizedException('Keycloak is niet volledig geconfigureerd.');
     }
 
     const { jwtVerify } = await this.loadJose();

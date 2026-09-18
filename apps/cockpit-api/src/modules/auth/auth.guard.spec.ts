@@ -22,11 +22,9 @@ function context(headers: Record<string, string | undefined> = {}) {
 
 function guard({
   isPublic = false,
-  keycloakConfigured = false,
   devFallback,
 }: {
   isPublic?: boolean;
-  keycloakConfigured?: boolean;
   devFallback?: string;
 }) {
   const reflector = {
@@ -36,7 +34,6 @@ function guard({
     get: (key: string) => (key === 'AUTH_DEV_HEADER_FALLBACK' ? devFallback : undefined),
   } as unknown as ConfigService;
   const keycloakJwtService = {
-    isConfigured: () => keycloakConfigured,
     validateBearerToken: jest.fn(async () => ({
       id: 'jwt-user',
       naam: 'JWT Gebruiker',
@@ -54,14 +51,14 @@ describe('AuthGuard', () => {
     await expect(guard({ isPublic: true }).canActivate(executionContext as never)).resolves.toBe(true);
   });
 
-  it('gebruikt header fallback wanneer Keycloak niet is geconfigureerd', async () => {
+  it('gebruikt header fallback alleen wanneer deze expliciet is ingeschakeld', async () => {
     const { request, executionContext } = context({
       'x-user-id': 'recordmanager-1',
       'x-user-name': 'Record Manager',
       'x-user-roles': 'recordmanager,proceseigenaar',
     });
 
-    await expect(guard({}).canActivate(executionContext as never)).resolves.toBe(true);
+    await expect(guard({ devFallback: 'true' }).canActivate(executionContext as never)).resolves.toBe(true);
     expect(request.user).toEqual({
       id: 'recordmanager-1',
       naam: 'Record Manager',
@@ -69,11 +66,22 @@ describe('AuthGuard', () => {
     });
   });
 
+  it('weigert requests zonder bearer token wanneer geen fallback is ingesteld', async () => {
+    const { executionContext } = context({
+      'x-user-id': 'lokale-omzeiling',
+      'x-user-roles': 'beheerder',
+    });
+
+    await expect(guard({}).canActivate(executionContext as never)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
   it('weigert requests zonder bearer token wanneer Keycloak strikt is geconfigureerd', async () => {
     const { executionContext } = context();
 
     await expect(
-      guard({ keycloakConfigured: true, devFallback: 'false' }).canActivate(executionContext as never),
+      guard({ devFallback: 'false' }).canActivate(executionContext as never),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
@@ -83,7 +91,7 @@ describe('AuthGuard', () => {
     });
 
     await expect(
-      guard({ keycloakConfigured: true, devFallback: 'false' }).canActivate(executionContext as never),
+      guard({ devFallback: 'false' }).canActivate(executionContext as never),
     ).resolves.toBe(true);
     expect(request.user).toEqual({
       id: 'jwt-user',

@@ -12,10 +12,11 @@ import { UitvoeringModule } from './modules/uitvoering/uitvoering.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { HealthController } from './health.controller';
 import { DatabaseModule } from './database/database.module';
+import { validateEnvironment } from './config/environment';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     DatabaseModule,
     AuthModule,
     StartentaakModule,
