@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import SidebarFooter from "./SidebarFooter";
 import SidebarItem from "./SidebarItem";
+import { useAuth } from "../shared/auth/authContext";
+import { canAccessCapability } from "../shared/auth/roleAccess";
 
 const AUTO_COLLAPSE_DELAY_MS = 1800;
 
@@ -68,6 +70,7 @@ function shouldAutoCollapse(pathname: string) {
 }
 
 export default function Sidebar() {
+  const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const collapseTimerRef = useRef<number | null>(null);
@@ -78,7 +81,9 @@ export default function Sidebar() {
       window.clearTimeout(collapseTimerRef.current);
     }
 
-    setIsExpanded(true);
+    const expandTimer = window.setTimeout(() => {
+      setIsExpanded(true);
+    }, 0);
 
     if (shouldAutoCollapse(location.pathname)) {
       collapseTimerRef.current = window.setTimeout(() => {
@@ -88,6 +93,7 @@ export default function Sidebar() {
     }
 
     return () => {
+      window.clearTimeout(expandTimer);
       if (collapseTimerRef.current !== null) {
         window.clearTimeout(collapseTimerRef.current);
         collapseTimerRef.current = null;
@@ -138,23 +144,27 @@ export default function Sidebar() {
             onClick={() => navigate("/dashboard")}
           />
 
-          <SidebarItem
-            label="Taken"
-            icon={<TakenIcon />}
-            active={
-              location.pathname.startsWith("/taken") ||
-              location.pathname.startsWith("/taak/")
-            }
-            expanded={isExpanded}
-            onClick={() => navigate("/taak/1")}
-          />
+          {canAccessCapability(auth.user?.roles ?? [], "taskDefinition") ? (
+            <SidebarItem
+              label="Taken"
+              icon={<TakenIcon />}
+              active={
+                location.pathname.startsWith("/taken") ||
+                location.pathname.startsWith("/taak/")
+              }
+              expanded={isExpanded}
+              onClick={() => navigate("/taak/1")}
+            />
+          ) : null}
 
-          <SidebarItem
-            label="Archief"
-            icon={<ArchiefIcon />}
-            active={location.pathname.startsWith("/taakdefinities")}
-            expanded={isExpanded}
-          />
+          {canAccessCapability(auth.user?.roles ?? [], "results") ? (
+            <SidebarItem
+              label="Archief"
+              icon={<ArchiefIcon />}
+              active={location.pathname.startsWith("/taakdefinities")}
+              expanded={isExpanded}
+            />
+          ) : null}
         </div>
 
         <div className="flex-1" />

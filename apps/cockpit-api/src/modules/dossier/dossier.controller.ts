@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { UserContext } from '../auth/user-context';
+import { Roles } from '../auth/roles.decorator';
+import { DOSSIER_READ_ROLES, RECORDMANAGER_ONLY } from '../auth/role-policy';
 import { DossierService } from './dossier.service';
 import { MarkeerBeoordeeldDto, ReviewregelQueryDto, UpdateReviewregelDto } from './dossier.dto';
 
@@ -9,6 +11,7 @@ export class DossierController {
   constructor(private readonly dossierService: DossierService) {}
 
   @Get('reviewregels')
+  @Roles(...DOSSIER_READ_ROLES)
   listReviewregels(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -18,6 +21,7 @@ export class DossierController {
   }
 
   @Patch('reviewregels/:reviewregelId')
+  @Roles(...RECORDMANAGER_ONLY)
   updateReviewregel(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -29,6 +33,7 @@ export class DossierController {
   }
 
   @Post('reviewregels/markeer-beoordeeld')
+  @Roles(...RECORDMANAGER_ONLY)
   markeerReviewregelsBeoordeeld(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -39,11 +44,13 @@ export class DossierController {
   }
 
   @Get('resultaatregels')
+  @Roles(...RECORDMANAGER_ONLY)
   listResultaatregels(@Param('taakId') taakId: string, @Param('taakuitvoeringId') taakuitvoeringId: string) {
     return this.dossierService.listResultaatregels({ taakId, taakuitvoeringId });
   }
 
   @Get('verklaring')
+  @Roles(...RECORDMANAGER_ONLY)
   downloadVernietigingsverklaring(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -52,6 +59,7 @@ export class DossierController {
   }
 
   @Post('export')
+  @Roles(...RECORDMANAGER_ONLY)
   exporteerVernietigingsresultaat(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,

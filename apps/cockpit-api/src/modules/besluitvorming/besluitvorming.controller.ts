@@ -2,6 +2,7 @@ import { Body, Controller, Param, Put } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { UserContext } from '../auth/user-context';
+import { COCKPIT_ROLES } from '../auth/role-policy';
 import { AccorderingDto } from './besluitvorming.dto';
 import { BesluitvormingService } from './besluitvorming.service';
 
@@ -10,7 +11,7 @@ export class BesluitvormingController {
   constructor(private readonly besluitvormingService: BesluitvormingService) {}
 
   @Put('proceseigenaar')
-  @Roles('proceseigenaar')
+  @Roles(COCKPIT_ROLES.proceseigenaar)
   legProceseigenaarAccorderingVast(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
@@ -25,7 +26,7 @@ export class BesluitvormingController {
   }
 
   @Put('archivaris')
-  @Roles('archivaris')
+  @Roles(COCKPIT_ROLES.archivaris)
   legArchivarisAccorderingVast(
     @Param('taakId') taakId: string,
     @Param('taakuitvoeringId') taakuitvoeringId: string,
