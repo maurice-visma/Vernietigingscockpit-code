@@ -3,17 +3,17 @@ import { Roles } from '../auth/roles.decorator';
 import { ALL_COCKPIT_ROLES } from '../auth/role-policy';
 import { StartentaakService } from './startentaak.service';
 
-@Controller('taken/:taakId/taakuitvoeringen')
+@Controller('taken')
 export class StartentaakController {
   constructor(private readonly startentaakService: StartentaakService) {}
 
-  @Get()
+  @Get('taakuitvoeringen')
   @Roles(...ALL_COCKPIT_ROLES)
   listTaakuitvoeringen() {
     return this.startentaakService.listTaakuitvoeringen();
   }
 
-  @Get(':taakuitvoeringId')
+  @Get(':taakId/taakuitvoeringen/:taakuitvoeringId')
   @Roles(...ALL_COCKPIT_ROLES)
   getTaakuitvoering(
     @Param('taakId') taakId: string,
